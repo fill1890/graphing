@@ -43,7 +43,7 @@ PROGRAMS_SRC:=$(wildcard bin/*.c)
 PROGRAMS:=$(patsubst %.c,%,$(PROGRAMS_SRC))
 
 # .a and .so targets
-TARGET=build/libLIBRARY.a
+TARGET=build/libgraph.a
 SO_TARGET:=$(patsubst %.a,%.so,$(TARGET))
 
 # Standard build: build .a library, .so library, build and run tests,
