@@ -19,8 +19,9 @@ MAKECMDGOALS?=all
 # GCC doesn't have the -Weverything flag, so we just use the standards
 # gnu-zero-variadic-macro-arguments is disabled because it breaks the
 # debugging macros
+# padded is disabled cos I don't care
 ifneq (,$(findstring clang,$(CC)))
-	W=-Weverything -Wno-gnu-zero-variadic-macro-arguments
+	W=-Weverything -Wno-gnu-zero-variadic-macro-arguments -Wno-padded
 else
 	W=-Wall -Wextra
 endif

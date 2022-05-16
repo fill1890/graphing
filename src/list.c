@@ -3,37 +3,30 @@
  * Basic linked list implementation
  */
 
+/* Notes
+ *
+ * This isn't particularly well optimised, nor is it an expansive implementation of a double linked list
+ * It could be improved further but is outside the scope of this project - I've only implemented what I'm
+ *   likely to need during use
+ *
+ * Recursion is used for iterative list operations because it's tidier than mucking around with pointer
+ *   reassignment in a loop and also I like it
+ */
+
 #include <malloc.h>
 
 #include "list.h"
-
-#pragma clang diagnostic ignored "-Wpadded"
-
-typedef struct list {
-    Item *start;
-    Item *end;
-    int length;
-} List;
-
-typedef struct item {
-    Item *previous;
-    Item *next;
-    void *value;
-} Item;
-
-List* new_list(void);
-int l_push(List *list, void *item);
-void *l_pop(List *list);
-void *l_index_rec(Item *current, int n);
-void *l_index(List *list, int n);
+#include "dbg.h"
 
 // Make a new list
 // Ignoring error handling bc I don't feel like implementing it
 List* new_list()
 {
-    List *list = malloc(sizeof(list));
+    List *list = malloc(sizeof(List));
 
     list->length = 0;
+    list->start = NULL;
+    list->end = NULL;
     return list;
 }
 
@@ -42,15 +35,17 @@ List* new_list()
 int l_push(List *list, void *item)
 {
     // Allocate memory for new item
-    Item *new = malloc(sizeof(item));
+    Item *new = malloc(sizeof(Item));
     if(!new) return 1;
 
     // List operations: Set new list end, send next value of old end,
     //   set previous of new, increment list length
     new->previous = list->end;
-    list->end->next = new;
+    if(list->end) list->end->next = new;
+    if(!list->start) list->start = new;
     list->end = new;
     new->value = item;
+    new->next = NULL;
     list->length += 1;
 
     return 0;
@@ -62,8 +57,15 @@ void *l_pop(List *list)
     // list operations blah blah
     Item *item = list->end;
     list->end = item->previous;
-    item->previous->next = NULL;
     list->length -= 1;
+
+    if(item->previous) {
+        // List is not empty
+        item->previous->next = NULL;
+    } else {
+        // List is now empty
+        list->start = NULL;
+    }
 
     void *value = item->value;
     free(item);
@@ -71,7 +73,6 @@ void *l_pop(List *list)
 }
 
 // Recursive list index
-// Please avoid using, should be accessed via l_index
 void *l_index_rec(Item *current, int n)
 {
     if(n == 0) return current->value;
@@ -97,5 +98,17 @@ void *l_index(List *list, int n)
 
 // Free a list
 // Will also destroy any items
-// TODO
-// void free_list(List *list)
+void l_free(List *list)
+{
+    if(list->start) l_free_rec(list->start);
+
+    free(list);
+}
+
+// Recursively free items in a list
+void l_free_rec(Item *item)
+{
+    if(item->next) l_free_rec(item->next);
+
+    free(item);
+}

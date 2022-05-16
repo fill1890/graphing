@@ -21,7 +21,7 @@ Terminate file with RUN_TESTS(all_tests)
 #include <stdlib.h>
 #include <string.h>
 
-#define mu_suite_start() char *message = NULL
+#define mu_suite_start() static char *message = NULL
 
 #define mu_assert(test, message, ...) if (!(test)) { log_err(message, ##__VA_ARGS__); return message; }
 
