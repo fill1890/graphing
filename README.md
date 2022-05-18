@@ -7,16 +7,16 @@ Prerequisites: `gcc` or `clang`
 Building:
 
 ```
-git clone https://github.com/fill1890/graphing.git
-cd graphing
-make
+$ git clone https://github.com/fill1890/graphing.git
+$ cd graphing
+$ make
 ```
 
 Usage:
 
 ```
-bin/graph_test      # Test over a predefined graph
-bin/read_file       # Read a graph file, formatted as "<one> (<|>) <two>" with each relation on a new line
+$ bin/graph_test          # Test over a predefined graph
+$ bin/read_file <file>    # Read a graph file, formatted as "<one> (<|>) <two>" with each relation on a new line
 ```
 
 Reference `src/graph.h` for library usage.
