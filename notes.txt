@@ -58,5 +58,13 @@ Some optimisation required
 We'll also have to check each against a base to make sure we're not conflicting anywhere ._.
 Imma just try it and see how I go
 
+For the record, I completely ignored the fact that the information website actually has an algorithm
 
+Possible optimisations:
+- Store a more complex hashmap of ids and values to make access easier, and allow fast binary searches for an item by id
+- optimise the transfers - if we have a series of values that all need transferring, it's more efficient to find all the
+  values in the series, then shift the entire block (one break, one insert) rather than all the values separately (many
+  breaks, many inserts)
+- The actual structure itself may not be well optimised - runtime sorting may be more efficient, but I don't feel like
+  actually going to the effort of figuring it out
 

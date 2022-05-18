@@ -2,7 +2,9 @@
  *
  * Basic DAG structure
  *
- * Values should be strings
+ * TODO: Make sure things can't be pushed twice
+ * TODO: Improve error handling
+ * TODO: Add automatic tests for graphs
  */
 
 #ifndef GRAPH_H
@@ -104,6 +106,7 @@ char **g_sorted(Graph *graph, int *size);
  *
  * Returns the value; i will be set to its index in the graph
  * Note there is not a function to lookup by index, use for comparisons
+ * i can be set as NULL if not needed
  *
  * Array should be freed with free() after use
  */

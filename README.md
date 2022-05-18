@@ -2,6 +2,8 @@
 
 Small library to interpret, store and sort a Directed Acyclic Graph.
 
+Prerequisites: `gcc` or `clang`
+
 Building:
 
 ```

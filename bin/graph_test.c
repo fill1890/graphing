@@ -19,8 +19,9 @@ int main(void)
     char **sorted = g_sorted(graph, &size);
 
     for(int i = 0; i < size; i++) {
-        printf("%s\n", sorted[i]);
+        printf("%s, ", sorted[i]);
     }
+    printf("\n");
 
     free(sorted);
     g_free(graph);
