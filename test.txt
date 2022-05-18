@@ -1,0 +1,6 @@
+five > zero
+five > two
+two > three
+three > one
+one < four
+zero < four
