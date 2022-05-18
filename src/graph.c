@@ -7,67 +7,6 @@
  * Written bc origin's doing it and it sounded interesting
  */
 
-/* Thoughts
- *
- * Plan to read from file that gives a series of relations a > b, c > d, a > c, etc each on a new line
- * Implement that as a separate function
- * Provide a sorted() function that returns an array (list? dl-list?) with the sorted order
- *
- * Data representation - depends on whether we need to retrieve the original structure later
- * - Could store the relations directly, and interpret & store at runtime - keeps original format but high runtime cost
- * - Alternatively store as a "tree"-style structure with links - complex form but more true to the system
- * - Or could store as a sorted array directly - less complicated and satisfies requirements but loses information
- *
- * I'm inclined to go with the second option because it's most "correct" in terms of the data
- *   being used, and the most interesting to implement
- *
- * What do we need?
- * - DAGs can be represented as a many-to-many relationship, where any one item can have multiple
- *   other items ranked higher or lower (or equal)
- * - Would be good to have a representation of a single item, with a list of higher and a list of lower items
- * - I also want a list of all the items in use so i can access them easily
- *
- * What if we used a hybrid approach? Sort them as they come in into a list, and store each relation
- * I might implement a linked list and sorted linked list bc why not
- * Provide a weighting function for a generic sorted linked list
- *
- * On further consideration: a generic sorted linked list is very complicated and I don't really want to deal with it
- * So I'll just do a non-generic one
- *
- * Structure: Sorted linked list of values, each of which contain a list of the values higher and lower than itself
- * Unfortunately assigning a weight to each item is difficult, so we can't really implement a binary search
- * Not that it works that well with a linked list anyway
- * So it won't be particularly well optimised
- *
- * DAGs are complex to work with because each item has no inherent value - it's only given one when
- *   described by its companions
- * A linked list works well for describing a sorted order, as items can be shifted around easily, but it's
- *   difficult to do optimised computations
- * Searches in particular are inefficient as we need to traverse the entire list in order to find something
- *
- * I'm planning to store values as strings since it works better
- * But this could theoretically be extended to generic objects, although they would need a unique id to avoid
- *   complicated deep matching
- * One issue is this results in a lot of string comparisons, so one good option would be to hash the strings into
- *   a uid for fast checking
- * But that's outside the scope of this project
- * Update: No longer outside the scope of this project, strings are now hashed and used as the id upon creation
- *
- * Edge cases and dealing with circular graphs are a pain
- *
- * Swapping Items and Avoiding Conflicts
- * So a possible conflict is when we say a > b > c, then we try to say c > a
- * This may not be a valid DAG (i have no idea) but I want to implement error checking for it anyway just in case
- * If we have, say, a > b and c > d, then we want to say d > a, we need to move both c and d above a, while also checking
- * for conflicts
- * I want to do a tree resolution that traverses the full set of all values higher than whatever we're swapping, then
- * sets a flag on each value, then iterates over the list and reapplies relations
- * Which should work
- * Some optimisation required
- * We'll also have to check each against a base to make sure we're not conflicting anywhere ._.
- * Imma just try it and see how I go
- */
-
 #include <malloc.h>
 
 #include "graph.h"
@@ -75,11 +14,11 @@
 #include "list.h"
 #include "dbg.h"
 
-
 // Make a new graph
 Graph *new_graph(void)
 {
     Graph *new = malloc(sizeof(Graph));
+    if(!new) return NULL;
 
     new->length = 0;
     new->start = NULL;
@@ -309,7 +248,7 @@ Value *g_find(Graph *graph, unsigned long search, int *index)
     return NULL;
 }
 
-int g_push(Graph *graph, Value *value)
+void g_push(Graph *graph, Value *value)
 {
     Value *before = graph->end;
 
@@ -318,8 +257,6 @@ int g_push(Graph *graph, Value *value)
     value->prev = before;
     graph->end = value;
     graph->length += 1;
-
-    return 0;
 }
 
 int g_insert_before(Graph *graph, Value *after, Value *new)

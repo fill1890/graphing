@@ -6,8 +6,24 @@
 #ifndef LIST_H
 #define LIST_H
 
-// pre dec cos i dont wanna refactor
+/* struct: Item
+ *
+ * Item in a linked list. Note that this is typically not exposed by list operation functions,
+ *   and is only needed during direct list access
+ *
+ * Format:
+ *   Item *next: Next item in list
+ *   Item *previous: Previous item in list
+ *   void *value: Pointer to value
+ */
 typedef struct item Item;
+
+typedef struct item {
+    Item *previous;
+    Item *next;
+    void *value;
+} Item;
+
 
 /* struct: List
  *
@@ -27,22 +43,6 @@ typedef struct list {
     Item *end;
     int length;
 } List;
-
-/* struct: Item
- *
- * Item in a linked list. Note that this is typically not exposed by list operation functions,
- *   and is only needed during direct list access
- *
- * Format:
- *   Item *next: Next item in list
- *   Item *previous: Previous item in list
- *   void *value: Pointer to value
- */
-typedef struct item {
-    Item *previous;
-    Item *next;
-    void *value;
-} Item;
 
 /* function: List* new_list()
  *
@@ -84,12 +84,6 @@ void *l_pop(List *list);
  */
 void *l_index(List *list, int n);
 
-/* function: l_index_rec
- *
- * used internally
- */
-void *l_index_rec(Item *current, int n);
-
 /* function: void l_free(List *list)
  *
  * Clear and free a list; use during cleanup
@@ -97,11 +91,5 @@ void *l_index_rec(Item *current, int n);
  * Note that this a destructive operation
  */
 void l_free(List *list);
-
-/* function: void l_free_rec
- *
- * used internally
- */
-void l_free_rec(Item *item);
 
 #endif

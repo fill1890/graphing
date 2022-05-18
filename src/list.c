@@ -23,6 +23,7 @@
 List* new_list()
 {
     List *list = malloc(sizeof(List));
+    if(!list) return NULL;
 
     list->length = 0;
     list->start = NULL;
@@ -73,7 +74,7 @@ void *l_pop(List *list)
 }
 
 // Recursive list index
-void *l_index_rec(Item *current, int n)
+static void *l_index_rec(Item *current, int n)
 {
     if(n == 0) return current->value;
 
@@ -86,7 +87,7 @@ void *l_index_rec(Item *current, int n)
 
 // Get nth value of a list
 // Returns null if does not exist
-// Could be optimised by searching from back if more than half,
+// Could maybe be optimised by searching from back if more than half,
 //   but outside the scope of this project
 void *l_index(List *list, int n)
 {
@@ -94,6 +95,14 @@ void *l_index(List *list, int n)
     if(n == list->length - 1) return list->end->value; // shortcut to last item
 
     return l_index_rec(list->start, n);
+}
+
+// Recursively free items in a list
+static void l_free_rec(Item *item)
+{
+    if(item->next) l_free_rec(item->next);
+
+    free(item);
 }
 
 // Free a list
@@ -105,10 +114,4 @@ void l_free(List *list)
     free(list);
 }
 
-// Recursively free items in a list
-void l_free_rec(Item *item)
-{
-    if(item->next) l_free_rec(item->next);
 
-    free(item);
-}

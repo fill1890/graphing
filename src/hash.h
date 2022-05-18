@@ -4,6 +4,12 @@
 #ifndef HASH_H
 #define HASH_H
 
+/* function: hash(char *str)
+ *
+ * Hash a string using djb2
+ *
+ * Returns hash
+ */
 unsigned long hash(char *str);
 
 #endif
