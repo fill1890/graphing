@@ -10,15 +10,20 @@
 
 #include "list.h"
 
+enum g_error {
+    ERR_RELATIONAL_CONFLICT = 1,
+};
+
 typedef struct value Value;
 
 // Value in graph
 typedef struct value {
-    List *higher;
-    List *lower;
+    List *higher; // List[Value]
+    List *lower;  // List[Value]
     Value *prev;
     Value *next;
     unsigned long id;
+    int to_transfer;
     char value[];
 } Value;
 
@@ -32,23 +37,17 @@ typedef struct graph {
 // Create a graph
 Graph *new_graph(void);
 
+// New value with item
+Value *new_value(char item[]);
+
 // Apply a new relation (will create items if not present) (err return)
 int g_apply_relation(Graph *graph, char greater[], char lesser[]);
 
 // Get the sorted list
-char **g_sorted(Graph *graph);
-
-// Add an item without relational information; avoid using as it increases cost later
-int *g_add_item(Graph *graph, unsigned char item[]);
+char **g_sorted(Graph *graph, int *size);
 
 // Find a value, returns value and the location (i)
 Value *g_find(Graph *graph, unsigned long id, int *i);
-
-// Internal recursive use
-Value *g_find_rec(Value *value, unsigned long id, int *index);
-
-// New value with item
-Value *new_value(char item[]);
 
 int g_push(Graph *graph, Value *value);
 

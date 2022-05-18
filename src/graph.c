@@ -51,8 +51,21 @@
  * One issue is this results in a lot of string comparisons, so one good option would be to hash the strings into
  *   a uid for fast checking
  * But that's outside the scope of this project
+ * Update: No longer outside the scope of this project, strings are now hashed and used as the id upon creation
  *
  * Edge cases and dealing with circular graphs are a pain
+ *
+ * Swapping Items and Avoiding Conflicts
+ * So a possible conflict is when we say a > b > c, then we try to say c > a
+ * This may not be a valid DAG (i have no idea) but I want to implement error checking for it anyway just in case
+ * If we have, say, a > b and c > d, then we want to say d > a, we need to move both c and d above a, while also checking
+ * for conflicts
+ * I want to do a tree resolution that traverses the full set of all values higher than whatever we're swapping, then
+ * sets a flag on each value, then iterates over the list and reapplies relations
+ * Which should work
+ * Some optimisation required
+ * We'll also have to check each against a base to make sure we're not conflicting anywhere ._.
+ * Imma just try it and see how I go
  */
 
 #include <malloc.h>
@@ -72,6 +85,108 @@ Graph *new_graph(void)
     new->start = NULL;
     new->end = NULL;
     return new;
+}
+
+Value *new_value(char item[])
+{
+    Value *new = malloc(sizeof(Value) + strlen(item) + 1); // yikes
+    if(!new) return NULL;
+
+    new->higher = new_list();
+    new->lower = new_list();
+
+    new->id = hash(item);
+    strcpy(new->value, item);
+
+    new->prev = NULL;
+    new->next = NULL;
+    new->to_transfer = 0;
+
+
+    return new;
+}
+
+static int g_resolve_tree_rec(Value *leaf, Value *root);
+
+// Wrapper to function to iterate through the list
+static int g_resolve_l_rec(Item *item, Value *root)
+{
+    int err = g_resolve_tree_rec((Value *)item->value, root);
+    if(err) return err;
+
+    if(item->next) return g_resolve_l_rec(item->next, root);
+
+    return 0;
+}
+
+static int g_resolve_tree_rec(Value *leaf, Value *root)
+{
+    if(leaf->id == root->id) return ERR_RELATIONAL_CONFLICT;
+
+    leaf->to_transfer = 1;
+
+    if(leaf->higher->length != 0) return g_resolve_l_rec(leaf->higher->start, root);
+
+    return 0;
+}
+
+static int g_resolve_tree(Value *trunk, Value *root)
+{
+    // Given a root, traverse its higher values and ensure there are no conflicts, while also setting transfer flags on each value that needs to be transferred
+    //
+    // What is my control flow here even supposed to be 
+    //
+    // for value in root->higher
+    //      check value != root
+    //      set flag
+    //      for value in value->higher, repeat
+    return g_resolve_tree_rec(trunk, root);
+}
+
+static void g_shift_before(Graph *graph, Value *pivot, Value *shift)
+{
+    // Break
+    Value *prev = shift->prev;
+    Value *next = shift->next;
+    if(prev) prev->next = next;
+    if(next) next->prev = prev;
+    shift->next = NULL;
+    shift->prev = NULL;
+
+    if(graph->start == shift) graph->start = next;
+    if(graph->end == shift) graph->end = prev;
+    graph->length -= 1;
+
+    // Reapply
+    g_insert_before(graph, pivot, shift);
+}
+
+static void g_transfer_rec(Graph *graph, Value *value, Value *pivot, int post_pivot) {
+
+    // Get the next value so we don't lose it after shift
+    Value *next = value->next;
+
+    // Middle case: hit pivot, skip while setting post_pivot true
+    if(value == pivot) {
+        g_transfer_rec(graph, next, pivot, 1);
+        return;
+    }
+
+    // Late case: After pivot and needs transfer
+    if(post_pivot && value->to_transfer) {
+        g_shift_before(graph, pivot, value);
+    }
+
+    // Early and all late cases: Reset to_transfer, continue
+    value->to_transfer = 0;
+    if(next) g_transfer_rec(graph, next, pivot, post_pivot);
+
+    return;
+}
+
+static void g_transfer(Graph *graph, Value *pivot)
+{
+    g_transfer_rec(graph, graph->start, pivot, 0);
 }
 
 // Apply a new relation
@@ -100,7 +215,19 @@ int g_apply_relation(Graph *graph, char greater[], char lesser[])
         l_push(lesser_v->higher, greater_v);
     } else if(greater_v && lesser_v && greater_i > lesser_i) {
         // Case 2 and 3
-        // TODO: actually implement logic as it may require complicated resolution
+
+        // Resolve the tree to find items that need to be transferred
+        int err = g_resolve_tree(greater_v, lesser_v);
+
+        if(err == ERR_RELATIONAL_CONFLICT) {
+            log_err("Conflict found! Cannot resolve %s > %s", greater, lesser);
+            return err;
+        }
+
+        g_transfer(graph, lesser_v);
+
+        l_push(greater_v->lower, lesser_v);
+        l_push(lesser_v->higher, greater_v);
     } else {
         // Case 4: need item
 
@@ -133,19 +260,26 @@ int g_apply_relation(Graph *graph, char greater[], char lesser[])
 
 }
 
-Value *g_find(Graph *graph, unsigned long search, int *index)
+static char **g_sorted_rec(Value *value, char **list)
 {
-    if(index) *index = 0;
-    Value *found = g_find_rec(graph->start, search, index);
+    if(!value) return list;
 
-    if(found) return found;
-
-    // else not found
-    if(index) *index = -1;
-    return NULL;
+    list[0] = value->value;
+    g_sorted_rec(value->next, &list[1]);
+    return list;
 }
 
-Value *g_find_rec(Value *value, unsigned long search, int *index)
+char **g_sorted(Graph *graph, int *size)
+{
+    if(graph->length == 0) return NULL;
+
+    char **list = malloc(sizeof(char *) * (unsigned long)graph->length);
+
+    *size = graph->length;
+    return g_sorted_rec(graph->start, list);
+}
+
+static Value *g_find_rec(Value *value, unsigned long search, int *index)
 {
     // Case 1: End of list and value not found, return null
     // Index will be reset by g_find
@@ -161,6 +295,18 @@ Value *g_find_rec(Value *value, unsigned long search, int *index)
     }
 
     return g_find_rec(value->next, search, index);
+}
+
+Value *g_find(Graph *graph, unsigned long search, int *index)
+{
+    if(index) *index = 0;
+    Value *found = g_find_rec(graph->start, search, index);
+
+    if(found) return found;
+
+    // else not found
+    if(index) *index = -1;
+    return NULL;
 }
 
 int g_push(Graph *graph, Value *value)
@@ -224,7 +370,8 @@ int g_insert_after(Graph *graph, Value *before, Value *new)
     return 0;
 }
 
-static void g_print_l_rec(Item *item) {
+static void g_print_l_rec(Item *item)
+{
     if(!item) return;
     if(!item->value) return;
 
@@ -244,36 +391,21 @@ static void g_print_rec(Value *value)
 {
     if(!value) return;
 
-    printf("[%li]: %s\n", value->id, value->value);
+    if(value->to_transfer) {
+        printf("[%li]: %s (*)\n", value->id, value->value);
+    } else {
+        printf("[%li]: %s\n", value->id, value->value);
+    }
     printf("  higher: "); g_print_l(value->higher);
     printf("  lower: "); g_print_l(value->lower);
 
     g_print_rec(value->next);
 }
 
-
 void g_print(Graph *graph)
 {
     printf("Length %i\n", graph->length);
     g_print_rec(graph->start);
-}
-
-Value *new_value(char item[])
-{
-    Value *new = malloc(sizeof(Value) + strlen(item) + 1); // yikes
-    if(!new) return NULL;
-
-    new->higher = new_list();
-    new->lower = new_list();
-
-    new->id = hash(item);
-    strcpy(new->value, item);
-
-    new->prev = NULL;
-    new->next = NULL;
-
-
-    return new;
 }
 
 // Recursively free items in a list
